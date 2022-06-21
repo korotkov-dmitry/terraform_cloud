@@ -1,4 +1,7 @@
 variable image { default =  "centos-7" }
+variable YC_TOKEN { default = "AQAAAABc4zf5AATuwYeHNLjly0lViDIGcqcRrn8"}
+variable YC_CLOUD_ID { default = "b1gtpsf9dfjk5055buns"}
+variable YC_FOLDER_ID { default = "b1gc1tus5qie76988pha"}
 
 terraform {
   required_providers {
