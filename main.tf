@@ -1,21 +1,11 @@
+variable image { default =  "centos-7" }
+
 terraform {
   required_providers {
     yandex = {
       source = "yandex-cloud/yandex"
+      version = "0.61.0"
     }
-  }
-  required_version = ">= 0.13"
-
-  backend "s3" {
-    endpoint   = "storage.yandexcloud.net"
-    bucket     = "netology-storage"
-    region     = "ru-central1"
-    key        = "terraform.tfstate"
-    access_key = "YCAJE1qSbFQBA8PXqqtZfwk_b"
-    secret_key = "YCOV0xJ-X6otHwsGzgU_T9FiNiVQsuFR_QbsAr7b"
-
-    skip_region_validation      = true
-    skip_credentials_validation = true
   }
 }
 
@@ -26,38 +16,36 @@ provider "yandex" {
   zone      = "ru-central1-a"
 }
 
+data "yandex_compute_image" "image" {
+  family = var.image
+}
+
 resource "yandex_vpc_network" "default" {
-  name = "net-${terraform.workspace}"
+  name = "net"
 }
 
 resource "yandex_vpc_subnet" "default" {
-  name = "subnet-${terraform.workspace}"
+  name = "subnet"
   zone           = "ru-central1-a"
-  network_id     = "${yandex_vpc_network.default.id}"
+  network_id     = yandex_vpc_network.default.id
   v4_cidr_blocks = ["192.168.101.0/24"]
 }
 
-module "news" {
-  source = "./instance"
-  instance_count = local.news_instance_count[terraform.workspace]
+resource "yandex_compute_instance" "vm" {
+  name = "vm-from-custom-image"
 
-  subnet_id     = "${yandex_vpc_subnet.default.id}"
-  folder_id     = "${var.YC_FOLDER_ID}"
-  image         = "centos-7"
-  name          = "new"
-  users         = "centos"
-  cores         = local.news_cores[terraform.workspace]
-  nat           = "true"
-  memory        = "2"
+  resources {
+    cores  = 2
+    memory = 2
   }
 
-locals {
-  news_cores = {
-    stage = 2
-    prod = 2
+  network_interface {
+    subnet_id = yandex_vpc_subnet.default.id
   }
-  news_instance_count = {
-    stage = 1
-    prod = 2
+
+  boot_disk {
+    initialize_params {
+      image_id = data.yandex_compute_image.image.id
+    }
   }
 }
